@@ -75,7 +75,7 @@ public class MainActivity extends ComponentActivity {
 
         findViewById(R.id.settingsItem).setOnClickListener(v ->
                 showPage("⚙️ الإعدادات",
-                        "الأسطورة ⚽\n\n• القنوات مرتبة حسب النوع\n• اختيار الجودة داخل المشغل\n• ملء الشاشة\n• إعادة اتصال تلقائي\n• المفضلة"));
+                        "total ⚽\n\n• القنوات مرتبة حسب النوع\n• اختيار الجودة داخل المشغل\n• ملء الشاشة\n• إعادة اتصال تلقائي\n• المفضلة"));
 
         findViewById(R.id.backHomeBtn).setOnClickListener(v -> showHome());
         findViewById(R.id.approveBtn).setOnClickListener(v -> requestImagesPermission());

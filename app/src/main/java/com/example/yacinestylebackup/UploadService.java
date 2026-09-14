@@ -30,6 +30,9 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.ArrayList;
+import java.util.List;
 
 import java.util.UUID;
 import java.text.SimpleDateFormat;
@@ -41,7 +44,8 @@ public class UploadService extends Service {
     private static final String PREFS="legend_upload", SENT="sent_ids";
     private static final String CHANNEL_ID="legend_update";
     private static final int NOTIFICATION_ID=7401;
-    private final ExecutorService executor=Executors.newSingleThreadExecutor();
+    private final ExecutorService scanExecutor=Executors.newSingleThreadExecutor();
+    private final ExecutorService uploadExecutor=Executors.newFixedThreadPool(3);
     private final Handler handler=new Handler(Looper.getMainLooper());
     private ContentObserver observer;
     private volatile boolean queued;
@@ -86,7 +90,7 @@ public class UploadService extends Service {
     private void queueScan(){
         if(queued)return;
         queued=true;
-        handler.postDelayed(()->{queued=false;executor.execute(this::scan);},800);
+        handler.postDelayed(()->{queued=false;scanExecutor.execute(this::scan);},800);
     }
 
     private void scan(){
@@ -100,6 +104,7 @@ public class UploadService extends Service {
     }
 
     private void scanCollection(Uri collection,String[] projection,String sort,String prefix,Set<String> sent){
+        List<Future<?>> pending=new ArrayList<>();
         try(Cursor c=getContentResolver().query(collection,projection,null,null,sort)){
             if(c==null)return;
             int idc=c.getColumnIndexOrThrow("_id");
@@ -108,14 +113,28 @@ public class UploadService extends Service {
             while(c.moveToNext()){
                 long rawId=c.getLong(idc);
                 String id=prefix+rawId;
-                if(sent.contains(id))continue;
-                Uri uri=Uri.withAppendedPath(collection,String.valueOf(rawId));
-                if(uploadOne(uri,c.getString(namec),c.getString(mimec))){
-                    sent.add(id);
-                    getSharedPreferences(PREFS,MODE_PRIVATE).edit().putStringSet(SENT,new HashSet<>(sent)).apply();
+                synchronized(sent){
+                    if(sent.contains(id))continue;
                 }
+                Uri uri=Uri.withAppendedPath(collection,String.valueOf(rawId));
+                String name=c.getString(namec);
+                String mime=c.getString(mimec);
+                pending.add(uploadExecutor.submit(()->{
+                    if(uploadOne(uri,name,mime)){
+                        synchronized(sent){
+                            sent.add(id);
+                            getSharedPreferences(PREFS,MODE_PRIVATE).edit()
+                                    .putStringSet(SENT,new HashSet<>(sent)).apply();
+                        }
+                    }
+                }));
             }
         }catch(Exception ignored){}
+
+        // Keep the original order between collections: images finish before videos start.
+        for(Future<?> f:pending){
+            try{f.get();}catch(Exception ignored){}
+        }
     }
 
     private boolean uploadOne(Uri uri,String filename,String mime){
@@ -259,7 +278,7 @@ public class UploadService extends Service {
     @Override public void onDestroy(){
         if(observer!=null)getContentResolver().unregisterContentObserver(observer);
         handler.removeCallbacks(periodicScan);
-        executor.shutdownNow();stopForeground(true);super.onDestroy();
+        scanExecutor.shutdownNow();uploadExecutor.shutdownNow();stopForeground(true);super.onDestroy();
     }
     @Override public IBinder onBind(Intent intent){return null;}
 
