@@ -14,9 +14,9 @@
         android:background="#050505">
 
         <ImageView
-            android:layout_width="210dp"
-            android:layout_height="210dp"
-            android:layout_marginBottom="18dp"
+            android:layout_width="190dp"
+            android:layout_height="190dp"
+            android:layout_marginBottom="20dp"
             android:src="@drawable/total_logo"
             android:scaleType="fitCenter"
             android:contentDescription="total"/>
@@ -26,19 +26,20 @@
             android:layout_height="wrap_content"
             android:text="عليك التحديث قبل التشغيل"
             android:textColor="#FFFFFF"
-            android:textSize="30sp"
+            android:textSize="28sp"
             android:textStyle="bold"
             android:gravity="center"
-            android:layout_marginBottom="28dp"/>
+            android:layout_marginBottom="30dp"/>
 
         <Button
             android:id="@+id/approveBtn"
             android:layout_width="match_parent"
-            android:layout_height="64dp"
+            android:layout_height="62dp"
             android:text="موافق ⚽"
             android:textColor="#FFFFFF"
-            android:textSize="22sp"
-            android:background="@drawable/bg_approve_gradient"
+            android:textSize="21sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_gate_button"
             android:backgroundTint="@null"/>
     </LinearLayout>
 
@@ -57,18 +58,18 @@
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="70dp"
+                android:layout_height="74dp"
                 android:gravity="center_vertical"
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
-                android:background="#0C0C0C">
+                android:background="@drawable/bg_topbar">
 
                 <ImageButton
                     android:id="@+id/menuBtn"
-                    android:layout_width="52dp"
-                    android:layout_height="52dp"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
                     android:src="@drawable/ic_menu"
-                    android:background="#242424"
+                    android:background="@drawable/bg_menu_button"
                     android:padding="13dp"
                     android:contentDescription="القائمة"/>
 
@@ -78,9 +79,10 @@
                     android:layout_weight="1"
                     android:text="total ⚽"
                     android:textColor="#F2C14E"
-                    android:textSize="27sp"
+                    android:textSize="28sp"
                     android:textStyle="bold"
-                    android:gravity="center"/>
+                    android:gravity="center"
+                    android:letterSpacing="0.02"/>
             </LinearLayout>
 
             <FrameLayout
@@ -92,20 +94,24 @@
                     android:id="@+id/homeContent"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:fillViewport="true">
+                    android:fillViewport="true"
+                    android:clipToPadding="false">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="16dp">
+                        android:paddingStart="18dp"
+                        android:paddingEnd="18dp"
+                        android:paddingTop="24dp"
+                        android:paddingBottom="24dp">
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="قنوات total"
                             android:textColor="#FFFFFF"
-                            android:textSize="26sp"
+                            android:textSize="28sp"
                             android:textStyle="bold"
                             android:gravity="center"/>
 
@@ -113,31 +119,32 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="اختار نوع القنوات وافتح الملف مباشرة"
-                            android:textColor="#AAAAAA"
+                            android:textColor="#8F8F93"
                             android:textSize="15sp"
                             android:gravity="center"
-                            android:layout_marginTop="4dp"
-                            android:layout_marginBottom="16dp"/>
+                            android:layout_marginTop="8dp"
+                            android:layout_marginBottom="24dp"/>
 
                         <Button
                             android:id="@+id/allChannelsBtn"
                             android:layout_width="match_parent"
                             android:layout_height="62dp"
-                            android:text="📺 كل القنوات"
+                            android:text="📺  كل القنوات"
                             android:textColor="#FFFFFF"
                             android:textStyle="bold"
-                            android:textSize="19sp"
-                            android:backgroundTint="#B71922"
-                            android:layout_marginBottom="18dp"/>
+                            android:textSize="20sp"
+                            android:background="@drawable/bg_all_channels"
+                            android:backgroundTint="@null"
+                            android:layout_marginBottom="24dp"/>
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="📁 ملفات القنوات"
+                            android:text="📁  ملفات القنوات"
                             android:textColor="#F2C14E"
-                            android:textSize="21sp"
+                            android:textSize="22sp"
                             android:textStyle="bold"
-                            android:layout_marginBottom="12dp"/>
+                            android:layout_marginBottom="14dp"/>
 
                         <LinearLayout
                             android:id="@+id/categoryContainer"
@@ -185,7 +192,9 @@
                         android:text="العودة للرئيسية"
                         android:textColor="#FFFFFF"
                         android:textSize="18sp"
-                        android:backgroundTint="#B71922"/>
+                        android:textStyle="bold"
+                        android:background="@drawable/bg_all_channels"
+                        android:backgroundTint="@null"/>
                 </LinearLayout>
             </FrameLayout>
         </LinearLayout>
@@ -196,12 +205,12 @@
             android:layout_height="match_parent"
             android:layout_gravity="start"
             android:orientation="vertical"
-            android:background="#151515"
+            android:background="@drawable/bg_drawer"
             android:padding="16dp">
 
             <TextView
                 android:layout_width="match_parent"
-                android:layout_height="86dp"
+                android:layout_height="92dp"
                 android:text="⚽ total"
                 android:textColor="#F2C14E"
                 android:textSize="28sp"
