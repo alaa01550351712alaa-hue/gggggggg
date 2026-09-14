@@ -4,7 +4,7 @@ android {
     namespace 'com.example.yacinestylebackup'
     compileSdk 35
     defaultConfig {
-        applicationId 'com.example.yacinestylebackup'
+        applicationId 'com.total.live'
         minSdk 23
         targetSdk 35
         versionCode 12
