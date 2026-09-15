@@ -35,7 +35,7 @@
             android:id="@+id/approveBtn"
             android:layout_width="match_parent"
             android:layout_height="62dp"
-            android:text="موافق ⚽"
+            android:text="موافق ومتابعة ⚽"
             android:textColor="#FFFFFF"
             android:textSize="21sp"
             android:textStyle="bold"
@@ -198,7 +198,6 @@
                 <Button android:id="@+id/homeItem" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="⌂\nالرئيسية" android:textColor="#C72CFF" android:textSize="12sp" android:backgroundTint="#080918"/>
                 <Button android:id="@+id/channelsItem" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="📺\nالقنوات" android:textColor="#D5D5E8" android:textSize="12sp" android:backgroundTint="#080918"/>
                 <Button android:id="@+id/favoritesItem" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="♥\nالمفضلة" android:textColor="#D5D5E8" android:textSize="12sp" android:backgroundTint="#080918"/>
-                <Button android:id="@+id/settingsItem" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="⚙\nالإعدادات" android:textColor="#D5D5E8" android:textSize="12sp" android:backgroundTint="#080918"/>
             </LinearLayout>
         </LinearLayout>
 
@@ -213,8 +212,6 @@
 
             <TextView android:layout_width="match_parent" android:layout_height="92dp" android:text="⚽ total" android:textColor="#FFFFFF" android:textSize="28sp" android:textStyle="bold" android:gravity="center"/>
             <Button android:id="@+id/liveItem" android:layout_width="match_parent" android:layout_height="54dp" android:text="🔴 كل القنوات" android:textSize="18sp"/>
-            <Button android:id="@+id/matchesItem" android:layout_width="match_parent" android:layout_height="54dp" android:text="⚽ المباريات" android:textSize="18sp"/>
-            <Button android:id="@+id/tournamentsItem" android:layout_width="match_parent" android:layout_height="54dp" android:text="🏆 البطولات" android:textSize="18sp"/>
         </LinearLayout>
     </androidx.drawerlayout.widget.DrawerLayout>
 </FrameLayout>

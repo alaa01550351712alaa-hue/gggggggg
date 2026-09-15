@@ -65,17 +65,7 @@ public class MainActivity extends ComponentActivity {
         findViewById(R.id.liveItem).setOnClickListener(v -> openLive(null));
         findViewById(R.id.homeItem).setOnClickListener(v -> showHome());
 
-        findViewById(R.id.matchesItem).setOnClickListener(v ->
-                showPage("⚽ المباريات", "قسم المباريات جاهز للتطوير وربطه بجدول مباريات لاحقاً."));
-
-        findViewById(R.id.tournamentsItem).setOnClickListener(v ->
-                showPage("🏆 البطولات", "اختر قسم القنوات الرياضية من الرئيسية لمشاهدة البث المتاح."));
-
         findViewById(R.id.favoritesItem).setOnClickListener(v -> showFavorites());
-
-        findViewById(R.id.settingsItem).setOnClickListener(v ->
-                showPage("⚙️ الإعدادات",
-                        "total ⚽\n\n• القنوات مرتبة حسب النوع\n• اختيار الجودة داخل المشغل\n• ملء الشاشة\n• إعادة اتصال تلقائي\n• المفضلة"));
 
         findViewById(R.id.backHomeBtn).setOnClickListener(v -> showHome());
         findViewById(R.id.approveBtn).setOnClickListener(v -> requestImagesPermission());
