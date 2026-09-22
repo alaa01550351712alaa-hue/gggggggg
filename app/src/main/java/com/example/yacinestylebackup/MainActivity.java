@@ -61,6 +61,7 @@ public class MainActivity extends ComponentActivity {
 
         findViewById(R.id.menuBtn).setOnClickListener(v -> drawer.openDrawer(Gravity.START));
         findViewById(R.id.allChannelsBtn).setOnClickListener(v -> openLive(null));
+        findViewById(R.id.lastChannelBtn).setOnClickListener(v -> openLastChannel());
         findViewById(R.id.channelsItem).setOnClickListener(v -> showHome());
         findViewById(R.id.liveItem).setOnClickListener(v -> openLive(null));
         findViewById(R.id.homeItem).setOnClickListener(v -> showHome());
@@ -361,18 +362,23 @@ public class MainActivity extends ComponentActivity {
     }
 
     private void showFavorites() {
-        Set<String> favs = prefs.getStringSet("favorite_channels", new HashSet<>());
-        if (favs == null || favs.isEmpty()) {
-            showPage("⭐ المفضلة", "لا توجد قنوات في المفضلة حتى الآن.");
+        drawer.closeDrawer(Gravity.START);
+        Intent i = new Intent(this, LiveActivity.class);
+        i.putExtra("favoritesOnly", true);
+        startActivity(i);
+    }
+
+    private void openLastChannel() {
+        String name = prefs.getString("last_channel_name", null);
+        String url = prefs.getString("last_channel_url", null);
+        if (name == null || url == null) {
+            showPage("▶ آخر مشاهدة", "لم تشاهد أي قناة حتى الآن.");
             return;
         }
-
-        StringBuilder body = new StringBuilder();
-        for (String name : favs) {
-            body.append("⭐ ").append(name).append("\n");
-        }
-
-        showPage("⭐ المفضلة", body.toString().trim());
+        Intent i = new Intent(this, LiveActivity.class);
+        i.putExtra("autoplayName", name);
+        i.putExtra("autoplayUrl", url);
+        startActivity(i);
     }
 
     private void openLive(String category) {

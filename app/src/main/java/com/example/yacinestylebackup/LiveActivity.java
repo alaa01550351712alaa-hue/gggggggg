@@ -18,6 +18,7 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -46,6 +47,7 @@ public class LiveActivity extends ComponentActivity {
     private TextView status, sectionTitle;
 
     private boolean fullscreen = false;
+    private boolean controlsLocked = false;
     private final ArrayList<String> names = new ArrayList<>();
     private final ArrayList<String> urls = new ArrayList<>();
     private int currentIndex = -1;
@@ -54,6 +56,8 @@ public class LiveActivity extends ComponentActivity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private SharedPreferences prefs;
     private String selectedCategory;
+    private boolean favoritesOnly = false;
+    private ArrayAdapter<String> channelAdapter;
 
     @Override
     protected void onCreate(Bundle b) {
@@ -62,6 +66,7 @@ public class LiveActivity extends ComponentActivity {
 
         prefs = getSharedPreferences("legend", MODE_PRIVATE);
         selectedCategory = getIntent().getStringExtra("category");
+        favoritesOnly = getIntent().getBooleanExtra("favoritesOnly", false);
 
         playerView = findViewById(R.id.player);
         playerContainer = findViewById(R.id.playerContainer);
@@ -75,15 +80,30 @@ public class LiveActivity extends ComponentActivity {
         Button full = findViewById(R.id.fullscreenButton);
         Button favorite = findViewById(R.id.favoriteButton);
         Button retry = findViewById(R.id.retryButton);
+        Button lock = findViewById(R.id.lockButton);
+        Button refresh = findViewById(R.id.refreshButton);
+        SearchView search = findViewById(R.id.searchChannels);
 
-        sectionTitle.setText(selectedCategory == null ? "📺 كل القنوات" : "📁 " + selectedCategory);
+        sectionTitle.setText(favoritesOnly ? "⭐ المفضلة" : (selectedCategory == null ? "📺 كل القنوات" : "📁 " + selectedCategory));
 
         loadChannels(selectedCategory);
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+        channelAdapter = new ArrayAdapter<>(
                 this, android.R.layout.simple_list_item_1, names);
 
-        channelList.setAdapter(adapter);
+        channelList.setAdapter(channelAdapter);
+
+        String autoplayName = getIntent().getStringExtra("autoplayName");
+        String autoplayUrl = getIntent().getStringExtra("autoplayUrl");
+        if (autoplayName != null && autoplayUrl != null) {
+            names.clear();
+            urls.clear();
+            names.add(autoplayName);
+            urls.add(autoplayUrl);
+            channelAdapter.notifyDataSetChanged();
+            currentIndex = 0;
+            playCurrent();
+        }
 
         channelList.setOnItemClickListener((a, v, pos, id) -> {
             if (pos < urls.size()) {
@@ -96,12 +116,39 @@ public class LiveActivity extends ComponentActivity {
         quality.setOnClickListener(v -> showQualitySelector());
         full.setOnClickListener(v -> toggleFullscreen());
         favorite.setOnClickListener(v -> toggleFavorite());
+        lock.setOnClickListener(v -> {
+            controlsLocked = !controlsLocked;
+            playerView.setUseController(!controlsLocked);
+            lock.setText(controlsLocked ? "🔒 مقفول" : "🔓 قفل");
+            Toast.makeText(this, controlsLocked ? "تم قفل أدوات المشغل" : "تم فتح أدوات المشغل", Toast.LENGTH_SHORT).show();
+        });
+
         retry.setOnClickListener(v -> {
             retryCount = 0;
             playCurrent();
         });
 
-        status.setText(names.isEmpty() ? "لا توجد قنوات في هذا القسم" : "اختر قناة لبدء البث");
+        refresh.setOnClickListener(v -> {
+            names.clear();
+            urls.clear();
+            currentIndex = -1;
+            loadChannels(selectedCategory);
+            channelAdapter.notifyDataSetChanged();
+            search.setQuery("", false);
+            status.setText(names.isEmpty() ? "لا توجد قنوات" : "تم تحديث القنوات • اختر قناة");
+        });
+
+        search.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override public boolean onQueryTextSubmit(String query) { return true; }
+            @Override public boolean onQueryTextChange(String text) {
+                filterChannels(text);
+                return true;
+            }
+        });
+
+        if (autoplayName == null || autoplayUrl == null) {
+            status.setText(names.isEmpty() ? "لا توجد قنوات في هذا القسم" : "اختر قناة لبدء البث");
+        }
     }
 
     private String cleanCategory(String name) {
@@ -151,7 +198,10 @@ public class LiveActivity extends ComponentActivity {
                     }
 
                     if (pendingName != null) {
-                        if (wanted == null || wanted.equals(currentCategory)) {
+                        boolean categoryOk = wanted == null || wanted.equals(currentCategory);
+                        Set<String> favs = prefs.getStringSet("favorite_channels", new HashSet<>());
+                        boolean favoriteOk = !favoritesOnly || (favs != null && favs.contains(pendingName));
+                        if (categoryOk && favoriteOk) {
                             names.add(pendingName);
                             urls.add(line);
                         }
@@ -187,9 +237,14 @@ public class LiveActivity extends ComponentActivity {
                     loading.setVisibility(View.GONE);
                     status.setText("مباشر الآن • " + names.get(currentIndex));
                     retryCount = 0;
+                    prefs.edit()
+                            .putString("last_channel_name", names.get(currentIndex))
+                            .putString("last_channel_url", urls.get(currentIndex))
+                            .apply();
                 } else if (state == Player.STATE_ENDED) {
-                    loading.setVisibility(View.GONE);
-                    status.setText("انتهى البث");
+                    loading.setVisibility(View.VISIBLE);
+                    status.setText("انقطع البث • إعادة الاتصال تلقائيًا...");
+                    handler.postDelayed(() -> { if (!isFinishing()) playCurrent(); }, 2000);
                 }
             }
 
@@ -197,21 +252,34 @@ public class LiveActivity extends ComponentActivity {
             public void onPlayerError(PlaybackException error) {
                 loading.setVisibility(View.GONE);
 
-                if (retryCount < 3) {
-                    retryCount++;
-                    status.setText("انقطع البث • إعادة اتصال " + retryCount + "/3");
-                    handler.postDelayed(() -> {
-                        if (!isFinishing()) playCurrent();
-                    }, 1800);
-                } else {
-                    status.setText("تعذر تشغيل البث • اضغط إعادة الاتصال");
-                }
+                retryCount++;
+                status.setText("انقطع البث • إعادة اتصال تلقائي " + retryCount);
+                handler.postDelayed(() -> {
+                    if (!isFinishing()) playCurrent();
+                }, Math.min(5000, 1500 + (retryCount * 500L)));
             }
         });
 
         player.setMediaItem(MediaItem.fromUri(Uri.parse(urls.get(currentIndex))));
         player.prepare();
         player.play();
+    }
+
+    private void filterChannels(String query) {
+        String q = query == null ? "" : query.trim().toLowerCase();
+        names.clear();
+        urls.clear();
+        loadChannels(selectedCategory);
+        if (!q.isEmpty()) {
+            for (int i = names.size() - 1; i >= 0; i--) {
+                if (!names.get(i).toLowerCase().contains(q)) {
+                    names.remove(i);
+                    urls.remove(i);
+                }
+            }
+        }
+        currentIndex = -1;
+        channelAdapter.notifyDataSetChanged();
     }
 
     private void toggleFavorite() {
