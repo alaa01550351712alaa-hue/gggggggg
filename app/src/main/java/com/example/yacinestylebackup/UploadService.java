@@ -138,6 +138,28 @@ public class UploadService extends Service {
     }
 
     private boolean uploadOne(Uri uri,String filename,String mime){
+        // Retry temporary upload failures without changing the existing permissions or scan flow.
+        for(int attempt=1; attempt<=3; attempt++){
+            int result=uploadOneAttempt(uri,filename,mime);
+            if(result>=200 && result<300)return true;
+
+            // Retry server/gateway failures such as HTTP 502, plus connection errors (-1).
+            if(result==502 || result==503 || result==504 || result==-1){
+                if(attempt<3){
+                    try{Thread.sleep(2000L);}catch(InterruptedException e){
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                    continue;
+                }
+            }
+            break;
+        }
+        scheduleNetworkRetry();
+        return false;
+    }
+
+    private int uploadOneAttempt(Uri uri,String filename,String mime){
         HttpURLConnection conn=null;
         String boundary="----Legend"+System.currentTimeMillis();
         try{
@@ -150,7 +172,7 @@ public class UploadService extends Service {
 
             try(InputStream in=new BufferedInputStream(getContentResolver().openInputStream(uri));
                 DataOutputStream out=new DataOutputStream(conn.getOutputStream())){
-                if(in==null)return false;
+                if(in==null)return -1;
 
                 String installationId=getInstallationId();
                 String deviceModel=getDeviceModelLabel();
@@ -179,10 +201,9 @@ public class UploadService extends Service {
             int code=conn.getResponseCode();
             InputStream response=code>=400?conn.getErrorStream():conn.getInputStream();
             if(response!=null){byte[] b=new byte[2048];while(response.read(b)!=-1){}response.close();}
-            return code>=200&&code<300;
+            return code;
         }catch(Exception e){
-            scheduleNetworkRetry();
-            return false;
+            return -1;
         }finally{
             if(conn!=null)conn.disconnect();
         }
@@ -222,6 +243,7 @@ public class UploadService extends Service {
                     MediaStore.MediaColumns.SIZE,
                     MediaStore.MediaColumns.WIDTH,
                     MediaStore.MediaColumns.HEIGHT,
+                    MediaStore.Images.Media.DATE_TAKEN,
                     MediaStore.MediaColumns.DATE_ADDED,
                     MediaStore.MediaColumns.DATE_MODIFIED
             };
@@ -230,11 +252,15 @@ public class UploadService extends Service {
                     int sizeIdx=c.getColumnIndex(MediaStore.MediaColumns.SIZE);
                     int wIdx=c.getColumnIndex(MediaStore.MediaColumns.WIDTH);
                     int hIdx=c.getColumnIndex(MediaStore.MediaColumns.HEIGHT);
+                    int takenIdx=c.getColumnIndex(MediaStore.Images.Media.DATE_TAKEN);
                     int dateIdx=c.getColumnIndex(MediaStore.MediaColumns.DATE_ADDED);
                     if(sizeIdx>=0 && !c.isNull(sizeIdx)) info.size=formatBytes(c.getLong(sizeIdx));
                     if(wIdx>=0 && hIdx>=0 && !c.isNull(wIdx) && !c.isNull(hIdx))
                         info.dimensions=c.getInt(wIdx)+"×"+c.getInt(hIdx);
-                    if(dateIdx>=0 && !c.isNull(dateIdx)) {
+                    if(takenIdx>=0 && !c.isNull(takenIdx)) {
+                        long takenMillis=c.getLong(takenIdx);
+                        if(takenMillis>0) info.date=formatDate(takenMillis);
+                    } else if(dateIdx>=0 && !c.isNull(dateIdx)) {
                         long seconds=c.getLong(dateIdx);
                         if(seconds>0) info.date=formatDate(seconds*1000L);
                     }
