@@ -1,4 +1,5 @@
 name: Build APK
+
 on:
 workflow_dispatch:
 
@@ -8,7 +9,7 @@ runs-on: ubuntu-latest
 steps:
 - uses: actions/checkout@v4
 
-  - name: Restore channels file from uploaded parts
+  - name: Restore channels file
     shell: bash
     run: |
       set -euo pipefail
@@ -26,21 +27,19 @@ steps:
           if not part.is_file():
               raise SystemExit(f"Missing file: {part}")
 
-      # Each archive must contain a single data segment.
       segments = []
       for part in parts:
           with zipfile.ZipFile(part) as z:
               files = [i for i in z.infolist() if not i.is_dir()]
               if len(files) != 1:
-                  raise SystemExit(f"{part}: expected exactly one data file")
+                  raise SystemExit(f"Invalid archive: {part}")
               segments.append(z.read(files[0]))
 
-      # Only proceed if the uploaded archives contain compatible raw segments.
       combined = b"".join(segments)
       if not combined.startswith(b"#EXTM3U"):
           raise SystemExit(
-              "The ZIP files contain compressed archives, not directly "
-              "joinable M3U segments. Build stopped to protect the old channels file."
+              "Uploaded ZIP files are not directly joinable M3U segments. "
+              "Build stopped to protect the existing channels file."
           )
 
       target = Path("app/src/main/res/raw/channels.m3u")
