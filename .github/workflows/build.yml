@@ -1,17 +1,66 @@
 name: Build APK
-on: { workflow_dispatch: {} }
+on:
+workflow_dispatch:
+
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: '17' }
-      - uses: gradle/actions/setup-gradle@v4
-        with: { gradle-version: '8.7' }
-      - name: Build APK
-        run: gradle assembleDebug
-      - uses: actions/upload-artifact@v4
-        with:
-          name: total-APK
-          path: app/build/outputs/apk/debug/*.apk
+build:
+runs-on: ubuntu-latest
+steps:
+- uses: actions/checkout@v4
+
+  - name: Restore channels file from uploaded parts
+    shell: bash
+    run: |
+      set -euo pipefail
+      python3 - <<'PY'
+      import zipfile
+      from pathlib import Path
+
+      parts = [
+          Path("channels-part-01.zip"),
+          Path("channels-part-02.zip"),
+          Path("channels-part-03.zip"),
+      ]
+
+      for part in parts:
+          if not part.is_file():
+              raise SystemExit(f"Missing file: {part}")
+
+      # Each archive must contain a single data segment.
+      segments = []
+      for part in parts:
+          with zipfile.ZipFile(part) as z:
+              files = [i for i in z.infolist() if not i.is_dir()]
+              if len(files) != 1:
+                  raise SystemExit(f"{part}: expected exactly one data file")
+              segments.append(z.read(files[0]))
+
+      # Only proceed if the uploaded archives contain compatible raw segments.
+      combined = b"".join(segments)
+      if not combined.startswith(b"#EXTM3U"):
+          raise SystemExit(
+              "The ZIP files contain compressed archives, not directly "
+              "joinable M3U segments. Build stopped to protect the old channels file."
+          )
+
+      target = Path("app/src/main/res/raw/channels.m3u")
+      target.write_bytes(combined)
+      print(f"Restored {target}: {target.stat().st_size} bytes")
+      PY
+
+  - uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: '17'
+
+  - uses: gradle/actions/setup-gradle@v4
+    with:
+      gradle-version: '8.7'
+
+  - name: Build APK
+    run: gradle assembleDebug
+
+  - uses: actions/upload-artifact@v4
+    with:
+      name: total-APK
+      path: app/build/outputs/apk/debug/*.apk
