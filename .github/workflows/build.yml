@@ -1,27 +1,63 @@
 name: Build APK
 
 on:
-workflow_dispatch:
+  workflow_dispatch:
 
 jobs:
-build:
-runs-on: ubuntu-latest
-steps:
-- uses: actions/checkout@v4
+  build:
+    runs-on: ubuntu-latest
 
-  - uses: actions/setup-java@v4
-    with:
-      distribution: temurin
-      java-version: '17'
+    steps:
+      - uses: actions/checkout@v4
 
-  - uses: gradle/actions/setup-gradle@v4
-    with:
-      gradle-version: '8.7'
+      - name: Restore channels file
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import zipfile
+          from pathlib import Path
 
-  - name: Build APK
-    run: gradle assembleDebug
+          parts = [
+              Path("channels-part-01.zip"),
+              Path("channels-part-02.zip"),
+              Path("channels-part-03.zip"),
+          ]
 
-  - uses: actions/upload-artifact@v4
-    with:
-      name: total-APK
-      path: app/build/outputs/apk/debug/*.apk
+          for part in parts:
+              if not part.is_file():
+                  raise SystemExit(f"Missing file: {part}")
+
+          segments = []
+          for part in parts:
+              with zipfile.ZipFile(part) as z:
+                  files = [i for i in z.infolist() if not i.is_dir()]
+                  if len(files) != 1:
+                      raise SystemExit(f"Invalid archive: {part}")
+                  segments.append(z.read(files[0]))
+
+          combined = b"".join(segments)
+          if not combined.startswith(b"#EXTM3U"):
+              raise SystemExit("Invalid M3U segments")
+
+          target = Path("app/src/main/res/raw/channels.m3u")
+          target.write_bytes(combined)
+          print(f"Restored {target}: {target.stat().st_size} bytes")
+          PY
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build APK
+        run: gradle assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: total-APK
+          path: app/build/outputs/apk/debug/*.apk
